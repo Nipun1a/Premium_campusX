@@ -1,24 +1,24 @@
-from pathlib import Path
-import pickle
-
 import pandas as pd
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi import status
+
+try:
+    from model.predict import MODEL_VERSION, predict_output
+except ImportError:  # pragma: no cover - supports running from the repo root
+    from models.model.predict import MODEL_VERSION, predict_output
 
 try:
     from models.schema.user_input import UserInput
 except ImportError:  # pragma: no cover - supports running from the models/ directory
     from schema.user_input import UserInput
 
-# Load Model
-MODEL_PATH = Path(__file__).parent / "model" / "model.pkl"
+try:
+    from models.schema.prediction_response import PredictionResponse
+except ImportError:  # pragma: no cover - supports running from the models/ directory
+    from schema.prediction_response import PredictionResponse
 
-with MODEL_PATH.open("rb") as f:
-    model = pickle.load(f)
- 
- #in this it is hardcoded but it is came with the help of mlflow   
-MODEL_VERSION = '1.0.0'
-    
+
 app = FastAPI()
 
 
@@ -35,10 +35,10 @@ def health_check():
     }
 
 
-@app.post("/predict")
+@app.post("/predict", response_model=PredictionResponse, status_code=status.HTTP_200_OK)
 def predict_premium(data: UserInput):
 
-    input_df = pd.DataFrame([{
+    User_input = pd.DataFrame([{
         "age": data.age,
         "weight": data.weight,
         "height": data.height,
@@ -52,11 +52,18 @@ def predict_premium(data: UserInput):
         "city_tier": data.city_tier,
     }])
 
-    prediction = model.predict(input_df)[0]
+    try:
+        prediction = predict_output(User_input)
+    except Exception as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Prediction failed: {exc}"},
+        )
 
-    return JSONResponse(
-        status_code=200,
-        content={
-            "predicted_category": str(prediction)
-        }
-    )
+    # `prediction` may be a dict with details (predicted_category, confidence, class_probabilities)
+    if isinstance(prediction, dict):
+        content = {"predicted_category": prediction}
+    else:
+        content = {"predicted_category": {"predicted_category": str(prediction)}}
+
+    return JSONResponse(status_code=200, content=content)
