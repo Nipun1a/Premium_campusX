@@ -1,7 +1,11 @@
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, computed_field, field_validator
-from config.city_tier import tier_1_cities,tier_2_cities
+
+try:
+    from config.city_tier import tier_1_cities, tier_2_cities
+except ImportError:
+    from models.config.city_tier import tier_1_cities, tier_2_cities
 
 
 class UserInput(BaseModel):

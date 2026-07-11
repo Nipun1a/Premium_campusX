@@ -1,7 +1,7 @@
 import pandas as pd
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-from fastapi import status
+from fastapi import HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 
 try:
     from model.predict import MODEL_VERSION, predict_output
@@ -21,7 +21,14 @@ except ImportError:  # pragma: no cover - supports running from the models/ dire
 
 app = FastAPI()
 
-
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins (can be restricted to ["http://localhost:8501"] for Streamlit)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def home():
@@ -55,15 +62,16 @@ def predict_premium(data: UserInput):
     try:
         prediction = predict_output(User_input)
     except Exception as exc:
-        return JSONResponse(
-            status_code=400,
-            content={"error": f"Prediction failed: {exc}"},
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Prediction failed: {exc}",
         )
 
-    # `prediction` may be a dict with details (predicted_category, confidence, class_probabilities)
     if isinstance(prediction, dict):
-        content = {"predicted_category": prediction}
-    else:
-        content = {"predicted_category": {"predicted_category": str(prediction)}}
+        return prediction
 
-    return JSONResponse(status_code=200, content=content)
+    return {
+        "predicted_category": str(prediction),
+        "confidence": None,
+        "class_probabilities": {},
+    }
