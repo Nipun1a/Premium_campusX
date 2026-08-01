@@ -27,7 +27,7 @@ A FastAPI-based machine learning application for premium prediction. The project
 ---
 
 # Pull Docker Image
-
+hub.docker.com/r/nipun1a/premium-based-api
 ```bash
 docker pull nipun1a/premium-based-api:latest
 ```
