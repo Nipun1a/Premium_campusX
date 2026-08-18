@@ -2,7 +2,7 @@ import requests
 import streamlit as st
 
 
-DEFAULT_API_URL = "http://127.0.0.1:8000/predict"
+DEFAULT_API_URL = "http://13.62.103.7:8000/predict"
 
 
 st.set_page_config(
